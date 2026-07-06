@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Duel</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<a href="https://discord.gg/NPne5TUVe" target="_blank" class="discord-btn" title="Join our Discord">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
+  </svg>
+  Join Discord
+</a>
+
+<!-- ── Login / Signup Screen ── -->
+  <div id="screen-login" class="screen active">
+    <div class="bolt-orbit">
+      <span class="orbit-dot"></span>
+      <span class="orbit-dot"></span>
+      <span class="orbit-dot"></span>
+    </div>
+
+    <div class="logo">⚡ Math Duel</div>
+    <p class="logo-sub">1v1 arithmetic warfare. Brains required.</p>
+
+    <div class="auth-toggle">
+      <button class="auth-tab active" type="button" id="tab-login" onclick="switchAuthTab('login')">Log In</button>
+      <button class="auth-tab" type="button" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <div class="card auth-card">
+      <div class="input-group">
+        <span class="input-icon">👤</span>
+        <input type="text" id="username-input" placeholder="Username..." maxlength="20" autocomplete="off" />
+      </div>
+      <div class="input-group">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="password-input" placeholder="Password..." maxlength="50" autocomplete="off" />
+        <button type="button" class="input-icon-toggle" id="toggle-password" onclick="togglePasswordVisibility()">👁️</button>
+      </div>
+
+      <div id="avatar-picker-wrap" style="display:none;">
+        <p class="avatar-label">Pick an avatar</p>
+        <div class="avatar-grid" id="avatar-grid"></div>
+      </div>
+
+      <button class="btn-primary" type="button" id="auth-submit-btn" onclick="handleAuthSubmit()">Log In 🏟️</button>
+    </div>
+    <p class="auth-hint" id="auth-hint">Don't have an account? Click "Sign Up" above.</p>
+  </div>
+
+  <!-- ── Main Menu ── -->
+  <div id="screen-menu" class="screen">
+    <div class="logo">⚡ Math Duel</div>
+    <div class="player-badge">
+      <div class="avatar" id="menu-avatar">🧮</div>
+      <div class="badge-info">
+        <span class="badge-name" id="menu-username">—</span>
+        <span class="badge-elo" id="menu-elo">⚡ 1000 ELO</span>
+      </div>
+    </div>
+    <div style="width:100%">
+  <button class="btn-primary" type="button" onclick="joinMatchmaking()">⚔️ Find a Match</button>
+  <button class="btn-practice" type="button" onclick="showScreen('screen-practice-select')">🤖 Practice vs Bot</button>
+  <button class="btn-challenge" type="button" onclick="showScreen('screen-challenge-menu')">🎯 Challenge a Friend</button>
+  <button class="btn-leaderboard" type="button" onclick="showLeaderboard()">🏆 Leaderboard</button>
+  <button class="btn-history" type="button" onclick="showHistory()">📜 Match History</button>
+  <button class="btn-spectate" type="button" onclick="showSpectateList()">👀 Watch Live Matches</button>
+  <button class="btn-logout" type="button" onclick="handleLogout()">🚪 Log Out</button>
+</div>
+  </div>
+
+  <!-- ── Matchmaking Screen ── -->
+  <div id="screen-matchmaking" class="screen">
+    <div class="logo" style="font-size:2rem;">Searching...</div>
+    <div class="searching-animation">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <p class="search-text">Hunting for a worthy opponent 🔍</p>
+    <p class="search-text" style="margin-top:6px;font-size:0.82rem;">May take a moment if queue is small</p>
+    <button class="btn-danger" type="button" onclick="cancelMatchmaking()" style="margin-top:24px;">Cancel</button>
+  </div>
+
+  <!-- ── Practice Difficulty Select ── -->
+  <div id="screen-practice-select" class="screen">
+    <div class="logo" style="font-size:2rem;">🤖 Pick Your Bot</div>
+    <p class="logo-sub" style="margin-bottom:24px;">No ELO on the line, just vibes</p>
+
+    <div class="diff-card" onclick="startPractice('easy')">
+      <div class="diff-emoji">😴</div>
+      <div class="diff-info">
+        <div class="diff-name">Easy — Sleepy Bot</div>
+        <div class="diff-desc">Slow and makes mistakes. Good for warming up.</div>
+      </div>
+    </div>
+
+    <div class="diff-card" onclick="startPractice('medium')">
+      <div class="diff-emoji">🙂</div>
+      <div class="diff-info">
+        <div class="diff-name">Medium — Decent Bot</div>
+        <div class="diff-desc">Reasonably sharp. A fair fight.</div>
+      </div>
+    </div>
+
+    <div class="diff-card" onclick="startPractice('hard')">
+      <div class="diff-emoji">😈</div>
+      <div class="diff-info">
+        <div class="diff-name">Hard — Sweaty Bot</div>
+        <div class="diff-desc">Fast and rarely wrong. Good luck.</div>
+      </div>
+    </div>
+
+    <button class="btn-secondary" type="button" onclick="showScreen('screen-menu')" style="margin-top:8px;">← Back</button>
+  </div>
+
+  <!-- ── Challenge Menu (create or join) ── -->
+  <div id="screen-challenge-menu" class="screen">
+    <div class="logo" style="font-size:2rem;">🎯 Challenge a Friend</div>
+    <p class="logo-sub" style="margin-bottom:24px;">Private 1v1, no randoms allowed</p>
+
+<div class="card">
+      <p class="avatar-label" style="margin-bottom:14px;">⏱️ All matches are 6 seconds per question</p>
+      <button class="btn-primary" type="button" onclick="createChallenge()">🎯 Create Challenge Code</button>
+    </div>
+
+    <div class="card">
+      <p class="avatar-label" style="margin-bottom:10px;">Have a code? Enter it here:</p>
+      <div class="input-group" style="margin-bottom:12px;">
+        <input type="text" id="join-code-input" placeholder="ABCDE" maxlength="5" style="text-transform:uppercase;text-align:center;letter-spacing:4px;font-weight:800;" autocomplete="off" />
+      </div>
+      <button class="btn-secondary" type="button" onclick="joinChallenge()">🔗 Join Match</button>
+    </div>
+
+    <button class="btn-secondary" type="button" onclick="showScreen('screen-menu')" style="margin-top:8px;">← Back</button>
+  </div>
+
+  <!-- ── Challenge Waiting Screen ── -->
+  <div id="screen-challenge-waiting" class="screen">
+    <div class="logo" style="font-size:2rem;">🎯 Share This Code</div>
+    <p class="logo-sub">Send it to your friend</p>
+
+    <div class="challenge-code-display" id="challenge-code-display">XXXXX</div>
+     <button class="btn-copy-code" type="button" onclick="copyCode()">📋 Copy Code</button>
+
+    <div class="searching-animation">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <p class="search-text">Waiting for them to join...</p>
+
+    <button class="btn-danger" type="button" onclick="cancelChallenge()" style="margin-top:24px;">Cancel</button>
+  </div>
+
+  <!-- ── Game Screen ── -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <div class="player-score-box you">
+        <div class="psb-name" id="game-you-name">You</div>
+        <div class="psb-score" id="game-you-score">0</div>
+        <div class="psb-label">points</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="player-score-box opponent">
+        <div class="psb-name" id="game-opp-name">Opponent</div>
+        <div class="psb-score" id="game-opp-score">0</div>
+        <div class="psb-label">points</div>
+      </div>
+    </div>
+
+    <div class="round-badge" id="round-badge">Round 1 · First to 5 wins 🏆</div>
+
+    <div class="question-card">
+      <svg id="timer-ring" class="timer-ring" viewBox="0 0 64 64" style="display:none;">
+        <circle cx="32" cy="32" r="26" class="timer-ring-bg" />
+        <circle cx="32" cy="32" r="26" class="timer-ring-fg" id="timer-ring-fg" />
+      </svg>
+      <div class="question-text" id="question-display">?</div>
+      <div class="question-hint">= ?</div>
+    </div>
+
+    <div class="answer-row">
+      <input type="number" id="answer-input" placeholder="Your answer..." autocomplete="off" />
+      <button class="btn-submit" type="button" onclick="submitAnswer()">Go! ➤</button>
+    </div>
+    <div class="feedback-msg" id="feedback-msg"></div>
+  </div>
+
+  <!-- ── Game Over Screen ── -->
+  <div id="screen-gameover" class="screen">
+    <div class="result-emoji" id="result-emoji">🏆</div>
+    <div class="result-title" id="result-title">You Win!</div>
+    <div class="result-elo" id="result-elo">+16 ELO</div>
+    <div class="card" id="elo-display-card" style="text-align:center;width:100%;">
+      <p style="color:var(--muted);font-size:0.85rem;font-weight:700;margin-bottom:10px;">NEW ELO</p>
+      <p id="new-elo-display" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:2.2rem;color:var(--lime);">1016</p>
+    </div>
+    <button class="btn-primary" type="button" id="rematch-btn" onclick="handleRematch()">⚔️ Rematch!</button>
+    <button class="btn-share" type="button" id="share-btn" onclick="shareResult()" style="display:none;">📣 Share With Friends!</button>
+    <button class="btn-secondary" type="button" onclick="showScreen('screen-menu')">🏠 Back to Menu</button>
+  </div>
+
+  <!-- ── Leaderboard Screen ── -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="lb-title">🏆 All-Time Rankings</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>W / L</th>
+            <th>ELO</th>
+          </tr>
+        </thead>
+        <tbody id="lb-body">
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button class="btn-secondary" type="button" onclick="showScreen('screen-menu')" style="margin-top:8px;">← Back</button>
+  </div>
+
+  <!-- ── Match History Screen ── -->
+  <div id="screen-history" class="screen">
+    <div class="lb-title">📜 Match History</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>Opponent</th>
+            <th>Result</th>
+            <th>ELO</th>
+            <th>When</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button class="btn-secondary" type="button" onclick="showScreen('screen-menu')" style="margin-top:8px;">← Back</button>
+  </div>
+
+<!-- ── Spectate List Screen ── -->
+  <div id="screen-spectate-list" class="screen">
+    <div class="lb-title">👀 Live Matches</div>
+    <div id="spectate-list-container" style="width:100%;">
+      <p class="search-text" style="margin:20px 0;">Loading live matches...</p>
+    </div>
+    <button class="btn-secondary" type="button" onclick="showScreen('screen-menu')" style="margin-top:8px;">← Back</button>
+  </div>
+
+  <!-- ── Spectator View Screen ── -->
+  <div id="screen-spectating" class="screen">
+    <div class="game-header">
+      <div class="player-score-box you">
+        <div class="psb-name" id="spec-p1-name">Player 1</div>
+        <div class="psb-score" id="spec-p1-score">0</div>
+        <div class="psb-label">points</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="player-score-box opponent">
+        <div class="psb-name" id="spec-p2-name">Player 2</div>
+        <div class="psb-score" id="spec-p2-score">0</div>
+        <div class="psb-label">points</div>
+      </div>
+    </div>
+    <div class="round-badge" id="spec-round-badge">Round 1</div>
+    <div class="question-card">
+      <div class="question-text" id="spec-question-display">?</div>
+      <div class="question-hint">👀 Spectating — watch only</div>
+    </div>
+    <button class="btn-danger" type="button" onclick="leaveSpectating()" style="margin-top:16px;">Stop Watching</button>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div id="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
