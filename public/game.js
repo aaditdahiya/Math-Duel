@@ -225,6 +225,7 @@ socket.on("game:start", (data) => {
 
   document.getElementById("game-you-name").innerHTML =
     "You" + (isPracticeGame ? `<span class="practice-tag">Practice</span>` : "");
+
   document.getElementById("game-opp-name").textContent = opponentName;
   document.getElementById("game-you-score").textContent = "0";
   document.getElementById("game-opp-score").textContent = "0";
@@ -237,9 +238,13 @@ socket.on("game:start", (data) => {
   if (data.timedMode) startTimerRing(6);
   else stopTimerRing();
 
-  toast(isPracticeGame ? `🤖 Facing ${opponentName} — good luck!` : `⚔️ VS ${opponentName} — Fight!`, 2000);
- document.title = won ? "🏆 You Won! — Math Duel" : "😭 You Lost — Math Duel";
-  setTimeout(() => { document.title = "Math Duel ⚡"; }, 5000);
+  toast(
+    isPracticeGame
+      ? `🤖 Facing ${opponentName} — good luck!`
+      : `⚔️ VS ${opponentName} — Fight!`,
+    2000
+  );
+
   showScreen("screen-game");
   document.getElementById("answer-input").focus();
 });
