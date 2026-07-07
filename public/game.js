@@ -494,8 +494,8 @@ function shareResult() {
   const opponent = opponentName;
 
   const text = won
-    ? `⚡ Just hit ${elo} ELO on Math Duel! Destroyed ${opponent} in a 1v1 math battle 🧮🔥 Can you beat me? Play at localhost:3000`
-    : `💀 Just lost to ${opponent} on Math Duel and dropped to ${elo} ELO... the math humbled me 😭 Play at localhost:3000`;
+    ? `⚡ Just hit ${elo} ELO on Math Duel! Destroyed ${opponent} in a 1v1 math battle 🧮🔥 Can you beat me? Play at https://math-duel-production.up.railway.app/`
+    : `💀 Just lost to ${opponent} on Math Duel and dropped to ${elo} ELO... the math humbled me 😭 Play at https://math-duel-production.up.railway.app/`;
 
   if (navigator.share) {
     navigator.share({ title: "Math Duel", text }).catch(() => {});
