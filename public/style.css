@@ -963,8 +963,15 @@ input:-webkit-autofill:focus {
   #toast { font-size: 0.85rem; padding: 10px 16px; max-width: 90vw; white-space: normal; text-align: center; }
 
   /* Discord button */
-  .discord-btn { font-size: 0.78rem; padding: 8px 12px; top: 10px; right: 10px; }
-  .discord-btn svg { width: 16px; height: 16px; }
+.discord-btn {
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    top: auto;
+    bottom: 16px;
+    right: 16px;
+    gap: 5px;
+  }
+  .discord-btn svg { width: 14px; height: 14px; }
 
   /* Searching animation */
   .search-text { font-size: 0.85rem; }

@@ -70,7 +70,7 @@ function toast(msg, duration = 2600) {
   setTimeout(() => el.classList.remove("show"), duration);
 }
 
-// ─── Avatar Picker ───────────────────────────────────────────────────────────handleAuthSubmit
+// ─── Avatar Picker ───────────────────────────────────────────────────────────
 
 function renderAvatarGrid() {
   const grid = document.getElementById("avatar-grid");
@@ -470,11 +470,12 @@ socket.on("leaderboard:data", (rows) => {
     return;
   }
 
-  tbody.innerHTML = rows.map((r, i) => `
+tbody.innerHTML = rows.map((r, i) => `
     <tr class="${i < 3 ? `rank-${i + 1}` : ""}">
       <td>${medals[i] ?? `<span class="lb-medal">${i + 1}</span>`}</td>
       <td>${r.avatar || "🧮"} ${r.username}</td>
       <td>${r.wins}W / ${r.losses}L</td>
+      <td style="color:var(--mint);font-weight:800;">${r.winrate}%</td>
       <td class="elo-val">${r.elo}</td>
     </tr>
   `).join("");

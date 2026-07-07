@@ -67,7 +67,11 @@ function updateElo(username, deltaElo, won) {
 
 function getLeaderboard() {
   return db.prepare(`
-    SELECT username, avatar, elo, wins, losses
+    SELECT username, avatar, elo, wins, losses,
+      CASE WHEN (wins + losses) > 0
+        THEN ROUND(wins * 100.0 / (wins + losses), 1)
+        ELSE 0
+      END as winrate
     FROM players
     ORDER BY elo DESC
     LIMIT 20

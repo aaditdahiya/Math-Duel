@@ -84,7 +84,16 @@
     </div>
     <p class="search-text">Hunting for a worthy opponent 🔍</p>
     <p class="search-text" style="margin-top:6px;font-size:0.82rem;">May take a moment if queue is small</p>
-    <button class="btn-danger" type="button" onclick="cancelMatchmaking()" style="margin-top:24px;">Cancel</button>
+
+    <div class="card" style="margin-top:24px;text-align:center;width:100%;">
+      <p style="color:var(--muted);font-size:0.85rem;font-weight:700;margin-bottom:14px;">
+        Don't want to wait? Try these instead:
+      </p>
+      <button class="btn-practice" type="button" onclick="cancelMatchmaking(); showScreen('screen-practice-select');">🤖 Play vs Bot</button>
+      <button class="btn-challenge" type="button" onclick="cancelMatchmaking(); showScreen('screen-challenge-menu');">🎯 Invite a Friend</button>
+    </div>
+
+    <button class="btn-danger" type="button" onclick="cancelMatchmaking()" style="margin-top:8px;">Cancel</button>
   </div>
 
   <!-- ── Practice Difficulty Select ── -->
@@ -213,11 +222,12 @@
       <table class="lb-table">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Player</th>
-            <th>W / L</th>
-            <th>ELO</th>
-          </tr>
+  <th>#</th>
+  <th>Player</th>
+  <th>W / L</th>
+  <th>Win%</th>
+  <th>ELO</th>
+</tr>
         </thead>
         <tbody id="lb-body">
           <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">Loading...</td></tr>
