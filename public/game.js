@@ -333,9 +333,9 @@ socket.on("game:over", (data) => {
     return;
   }
   stopTimerRing();
+  const won = data.winner === myUsername;
   document.title = won ? "🏆 You Won! — Math Duel" : "😭 You Lost — Math Duel";
   setTimeout(() => { document.title = "Math Duel ⚡"; }, 5000);
-  const won = data.winner === myUsername;
 
   if (won) playWinSound();
   else playLoseSound();
@@ -344,7 +344,7 @@ socket.on("game:over", (data) => {
   document.getElementById("result-title").textContent = won ? "You Win!" : "You Lose!";
   document.getElementById("result-title").className = `result-title ${won ? "win" : "lose"}`;
 
-if (data.isPractice) {
+  if (data.isPractice) {
     document.getElementById("result-elo").textContent = won ? "Nice! No ELO at stake 🤖" : "Rematch the bot? 🤖";
     document.getElementById("result-elo").className = `result-elo ${won ? "gain" : "loss"}`;
     document.getElementById("elo-display-card").style.display = "none";
