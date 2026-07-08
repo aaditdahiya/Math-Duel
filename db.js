@@ -1,72 +1,76 @@
-const Database = require("better-sqlite3");
+const { Pool } = require("pg");
 const crypto = require("crypto");
-const db = new Database("mathduel.db");
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS players (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    avatar TEXT DEFAULT '🧮',
-    elo INTEGER DEFAULT 1000,
-    wins INTEGER DEFAULT 0,
-    losses INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-// Migration: add avatar column if upgrading from an older DB that lacks it
-try {
-  db.exec(`ALTER TABLE players ADD COLUMN avatar TEXT DEFAULT '🧮'`);
-} catch (e) {
-  // Column already exists, ignore
+async function init() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS players (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      avatar TEXT DEFAULT '🧮',
+      elo INTEGER DEFAULT 1000,
+      wins INTEGER DEFAULT 0,
+      losses INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS match_history (
+      id SERIAL PRIMARY KEY,
+      player1 TEXT NOT NULL,
+      player2 TEXT NOT NULL,
+      winner TEXT NOT NULL,
+      elo_change INTEGER DEFAULT 0,
+      is_practice BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 }
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS match_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player1 TEXT NOT NULL,
-    player2 TEXT NOT NULL,
-    winner TEXT NOT NULL,
-    elo_change INTEGER DEFAULT 0,
-    is_practice INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+init().then(() => console.log("Database ready")).catch(console.error);
 
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-function usernameExists(username) {
-  const player = db.prepare("SELECT id FROM players WHERE username = ?").get(username);
-  return !!player;
+async function usernameExists(username) {
+  const res = await pool.query("SELECT id FROM players WHERE username = $1", [username]);
+  return res.rows.length > 0;
 }
 
-function createPlayer(username, password, avatar) {
+async function createPlayer(username, password, avatar) {
   const hash = hashPassword(password);
-  db.prepare("INSERT INTO players (username, password_hash, avatar) VALUES (?, ?, ?)").run(username, hash, avatar || "🧮");
+  await pool.query(
+    "INSERT INTO players (username, password_hash, avatar) VALUES ($1, $2, $3)",
+    [username, hash, avatar || "🧮"]
+  );
   return getPlayer(username);
 }
 
-function verifyPassword(username, password) {
-  const player = db.prepare("SELECT * FROM players WHERE username = ?").get(username);
-  if (!player) return false;
-  return player.password_hash === hashPassword(password);
+async function verifyPassword(username, password) {
+  const res = await pool.query("SELECT password_hash FROM players WHERE username = $1", [username]);
+  if (res.rows.length === 0) return false;
+  return res.rows[0].password_hash === hashPassword(password);
 }
 
-function updateElo(username, deltaElo, won) {
-  db.prepare(`
+async function updateElo(username, deltaElo, won) {
+  await pool.query(`
     UPDATE players
-    SET elo = elo + ?,
-        wins = wins + ?,
-        losses = losses + ?
-    WHERE username = ?
-  `).run(deltaElo, won ? 1 : 0, won ? 0 : 1, username);
+    SET elo = elo + $1,
+        wins = wins + $2,
+        losses = losses + $3
+    WHERE username = $4
+  `, [deltaElo, won ? 1 : 0, won ? 0 : 1, username]);
 }
 
-function getLeaderboard() {
-  return db.prepare(`
+async function getLeaderboard() {
+  const res = await pool.query(`
     SELECT username, avatar, elo, wins, losses,
       CASE WHEN (wins + losses) > 0
         THEN ROUND(wins * 100.0 / (wins + losses), 1)
@@ -75,28 +79,34 @@ function getLeaderboard() {
     FROM players
     ORDER BY elo DESC
     LIMIT 20
-  `).all();
+  `);
+  return res.rows;
 }
 
-function getPlayer(username) {
-  return db.prepare("SELECT id, username, avatar, elo, wins, losses, created_at FROM players WHERE username = ?").get(username);
+async function getPlayer(username) {
+  const res = await pool.query(
+    "SELECT id, username, avatar, elo, wins, losses, created_at FROM players WHERE username = $1",
+    [username]
+  );
+  return res.rows[0] || null;
 }
 
-function recordMatch(player1, player2, winner, eloChange, isPractice) {
-  db.prepare(`
+async function recordMatch(player1, player2, winner, eloChange, isPractice) {
+  await pool.query(`
     INSERT INTO match_history (player1, player2, winner, elo_change, is_practice)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(player1, player2, winner, eloChange, isPractice ? 1 : 0);
+    VALUES ($1, $2, $3, $4, $5)
+  `, [player1, player2, winner, eloChange, isPractice]);
 }
 
-function getMatchHistory(username, limit = 10) {
-  return db.prepare(`
+async function getMatchHistory(username, limit = 10) {
+  const res = await pool.query(`
     SELECT player1, player2, winner, elo_change, is_practice, created_at
     FROM match_history
-    WHERE player1 = ? OR player2 = ?
+    WHERE player1 = $1 OR player2 = $1
     ORDER BY id DESC
-    LIMIT ?
-  `).all(username, username, limit);
+    LIMIT $2
+  `, [username, limit]);
+  return res.rows;
 }
 
 module.exports = {
