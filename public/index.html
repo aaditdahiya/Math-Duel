@@ -84,7 +84,7 @@
 </div>
   </div>
 
-  <!-- ── Matchmaking Screen ── -->
+<!-- ── Matchmaking Screen ── -->
   <div id="screen-matchmaking" class="screen">
     <div class="logo" style="font-size:2rem;">Searching...</div>
     <div class="searching-animation">
@@ -93,9 +93,12 @@
       <div class="dot"></div>
     </div>
     <p class="search-text">Hunting for a worthy opponent 🔍</p>
-    <p class="search-text" style="margin-top:6px;font-size:0.82rem;">May take a moment if queue is small</p>
+    <p class="search-text" id="wait-timer" style="margin-top:6px;font-size:0.95rem;color:var(--lime);font-weight:800;">⏱️ 0s</p>
+    <p class="search-text" id="bot-hint" style="margin-top:4px;font-size:0.78rem;display:none;">
+      It's taking longer than usual... 
+    </p>
 
-    <div class="card" style="margin-top:24px;text-align:center;width:100%;">
+    <div class="card" style="margin-top:20px;text-align:center;width:100%;">
       <p style="color:var(--muted);font-size:0.85rem;font-weight:700;margin-bottom:14px;">
         Don't want to wait? Try these instead:
       </p>

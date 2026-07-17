@@ -15,6 +15,8 @@ let isPracticeGame = false;
 let authMode = "login";
 let selectedAvatar = "🧮";
 let timerInterval = null;
+let waitTimerInterval = null;
+let waitSeconds = 0;
 
 const AVATAR_OPTIONS = ["🧮", "🦊", "🐙", "🦖", "🐸", "🦉", "🐲", "🤖"];
 const TIMER_CIRCUMFERENCE = 2 * Math.PI * 26;
@@ -148,11 +150,31 @@ function joinMatchmaking() {
 }
 
 function cancelMatchmaking() {
+  clearInterval(waitTimerInterval);
+  waitSeconds = 0;
+  const el = document.getElementById("wait-timer");
+  if (el) el.textContent = "⏱️ 0s";
+  const hint = document.getElementById("bot-hint");
+  if (hint) hint.style.display = "none";
   socket.emit("matchmaking:cancel");
   showScreen("screen-menu");
 }
 
-socket.on("matchmaking:waiting", () => {});
+socket.on("matchmaking:waiting", () => {
+  waitSeconds = 0;
+  clearInterval(waitTimerInterval);
+  document.getElementById("bot-hint").style.display = "none";
+  waitTimerInterval = setInterval(() => {
+    waitSeconds++;
+    const el = document.getElementById("wait-timer");
+    if (el) el.textContent = `⏱️ ${waitSeconds}s`;
+    // Show bot hint after 10 seconds
+    if (waitSeconds === 10) {
+      const hint = document.getElementById("bot-hint");
+      if (hint) hint.style.display = "block";
+    }
+  }, 1000);
+});
 
 // ─── Practice Mode ───────────────────────────────────────────────────────────
 
@@ -218,6 +240,8 @@ function stopTimerRing() {
 // ─── Game ────────────────────────────────────────────────────────────────────
 
 socket.on("game:start", (data) => {
+  clearInterval(waitTimerInterval);
+  waitSeconds = 0;
   currentGameId = data.gameId;
   opponentName = data.opponent[socket.id];
   answered = false;

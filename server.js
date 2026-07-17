@@ -88,15 +88,22 @@ function queueRoundTimeout(gameId) {
 }
 
 function nextRound(gameId) {
-  const game = activeGames[gameId]; if (!game) return;
+  const game = activeGames[gameId];
+  if (!game) return;
+
   game.roundLocked = false;
   for (const pid in game.players) game.players[pid].answered = false;
-  game.question = generateQuestion(); game.round++;
+  game.question = generateQuestion();
+  game.round++;
+
   io.to(gameId).emit("game:round", {
-    question: game.question.question, round: game.round,
+    question: game.question.question,
+    round: game.round,
     scores: Object.fromEntries(Object.values(game.players).map((p) => [p.username, p.score])),
   });
+
   if (game.isPractice) queueCpuMove(gameId);
+  if (game.isAutoBot) queueAutoBotMove(gameId);
   if (game.timedMode) queueRoundTimeout(gameId);
 }
 
@@ -148,6 +155,181 @@ const CPU_DIFFICULTY = {
   medium: { minDelay: 2500, maxDelay: 4500, accuracy: 0.70 },
   hard:   { minDelay: 1500, maxDelay: 3000, accuracy: 0.90 },
 };
+
+// ─── Auto-Bot─────────────────────────
+
+const HUMAN_BOT_NAMES = ["Alex", "Jordan", "Sam", "Riley", "Morgan", "Casey", "Jamie", "Quinn", "Taylor", "Drew"];
+const HUMAN_BOT_SUFFIXES = ["123", "99", "xo", "pro", "gg", "lol", "2k", "_x", ""];
+
+function generateHumanishName() {
+  const name = HUMAN_BOT_NAMES[Math.floor(Math.random() * HUMAN_BOT_NAMES.length)];
+  const suffix = HUMAN_BOT_SUFFIXES[Math.floor(Math.random() * HUMAN_BOT_SUFFIXES.length)];
+  return name + suffix;
+}
+
+function generateRandomBotDiff() {
+  return {
+    minDelay: Math.floor(Math.random() * 3000) + 1500,
+    maxDelay: Math.floor(Math.random() * 3000) + 4000,
+    accuracy: Math.random() * 0.5 + 0.3,
+  };
+}
+
+function countRealHumansOnline() {
+  let count = 0;
+  for (const s of io.sockets.sockets.values()) {
+    if (s.username) count++;
+  }
+  return count;
+}
+
+function trySpawnAutoBot(waitingSocket) {
+  // Only spawn if this exact socket is still in the queue AND is the only human online
+  const stillInQueue = matchmakingQueue.find(p => p.socket.id === waitingSocket.id);
+  if (!stillInQueue) return; // already matched with a real player
+
+  const humansOnline = countRealHumansOnline();
+  if (humansOnline > 1) return; // other humans online, let real matchmaking work
+
+  const botName = generateHumanishName();
+  const botDiff = generateRandomBotDiff();
+  const botSocketId = "autobot-" + waitingSocket.id;
+  const gameId = `${waitingSocket.id}-${botSocketId}`;
+  const question = generateQuestion();
+
+  const game = {
+    gameId,
+    isPractice: false,
+    isAutoBot: true,
+    roundLocked: false,
+    timedMode: true,
+    spectators: new Set(),
+    cpuSocketId: botSocketId,
+    cpuDiff: botDiff,
+    players: {
+      [waitingSocket.id]: { username: waitingSocket.username, elo: waitingSocket.elo, score: 0, answered: false, streak: 0 },
+      [botSocketId]: { username: botName, score: 0, answered: false, streak: 0, elo: 1000 },
+    },
+    question,
+    round: 1,
+    maxScore: 5,
+  };
+
+  // Remove from matchmaking queue
+  const idx = matchmakingQueue.findIndex(p => p.socket.id === waitingSocket.id);
+  if (idx !== -1) matchmakingQueue.splice(idx, 1);
+
+  activeGames[gameId] = game;
+  waitingSocket.join(gameId);
+  waitingSocket.gameId = gameId;
+
+  waitingSocket.emit("game:start", {
+    gameId,
+    isPractice: false,
+    timedMode: true,
+    opponent: { [waitingSocket.id]: botName },
+    question: question.question,
+    round: 1,
+    scores: { [waitingSocket.username]: 0, [botName]: 0 },
+  });
+
+  if (game.timedMode) queueRoundTimeout(gameId);
+  queueAutoBotMove(gameId);
+  console.log(`Auto-bot spawned: ${waitingSocket.username} vs ${botName} (accuracy: ${(botDiff.accuracy * 100).toFixed(0)}%)`);
+}
+
+function queueAutoBotMove(gameId) {
+  const game = activeGames[gameId];
+  if (!game || !game.isAutoBot) return;
+
+  const { minDelay, maxDelay, accuracy } = game.cpuDiff;
+  const delay = minDelay + Math.random() * (maxDelay - minDelay);
+  const roundAtSchedule = game.round;
+
+  setTimeout(() => {
+    const current = activeGames[gameId];
+    if (!current) return;
+    if (current.round !== roundAtSchedule) return;
+    if (current.roundLocked) return;
+
+    const bot = current.players[current.cpuSocketId];
+    if (!bot || bot.answered) return;
+
+    const willBeCorrect = Math.random() < accuracy;
+    bot.answered = true;
+
+    if (willBeCorrect) {
+      current.roundLocked = true;
+      bot.score++;
+      bot.streak = (bot.streak || 0) + 1;
+
+      const humanId = Object.keys(current.players).find(id => id !== current.cpuSocketId);
+      if (humanId) current.players[humanId].streak = 0;
+
+      const scores = Object.fromEntries(Object.values(current.players).map(p => [p.username, p.score]));
+      io.to(gameId).emit("game:point", { scorer: bot.username, scores, streak: bot.streak });
+
+      if (bot.score >= current.maxScore) {
+        endAutoBotGame(gameId, current.cpuSocketId);
+      } else {
+        setTimeout(() => nextRoundAutoBot(gameId), 1200);
+      }
+    }
+  }, delay);
+}
+
+function nextRoundAutoBot(gameId) {
+  const game = activeGames[gameId];
+  if (!game) return;
+
+  game.roundLocked = false;
+  for (const pid in game.players) game.players[pid].answered = false;
+  game.question = generateQuestion();
+  game.round++;
+
+  io.to(gameId).emit("game:round", {
+    question: game.question.question,
+    round: game.round,
+    scores: Object.fromEntries(Object.values(game.players).map(p => [p.username, p.score])),
+  });
+
+  if (game.timedMode) queueRoundTimeout(gameId);
+  queueAutoBotMove(gameId);
+}
+
+async function endAutoBotGame(gameId, winnerSocketId) {
+  const game = activeGames[gameId];
+  if (!game) return;
+
+  const winner = game.players[winnerSocketId];
+  const humanId = Object.keys(game.players).find(id => id !== game.cpuSocketId);
+  const human = game.players[humanId];
+  const humanWon = winnerSocketId === humanId;
+
+  // Give/take small ELO even for auto-bot games so it feels real
+  const eloChange = humanWon ? 8 : 5;
+  if (humanWon) {
+    await updateElo(human.username, +eloChange, true);
+  } else {
+    await updateElo(human.username, -eloChange, false);
+  }
+
+  const humanFinal = await getPlayer(human.username);
+
+  io.to(gameId).emit("game:over", {
+    isPractice: false,
+    winner: winner.username,
+    eloChange,
+    players: {
+      [human.username]: { ...humanFinal },
+      [winner.username]: { username: winner.username, elo: 1000 },
+    },
+  });
+
+  await recordMatch(human.username, winner.username, winner.username, eloChange, false);
+  delete activeGames[gameId];
+  console.log(`Auto-bot game ended - winner: ${winner.username}`);
+}
 
 function startPracticeGame(socket, difficulty) {
   const diff = CPU_DIFFICULTY[difficulty] || CPU_DIFFICULTY.medium;
@@ -236,15 +418,22 @@ io.on("connection", (socket) => {
     socket.emit("history:data", await getMatchHistory(socket.username, 10));
   });
 
-  socket.on("matchmaking:join", () => {
-    const username = socket.username; if (!username) return;
+socket.on("matchmaking:join", () => {
+    const username = socket.username;
+    if (!username) return;
     if (matchmakingQueue.find((p) => p.socket.id === socket.id)) return;
+
     matchmakingQueue.push({ socket, username, elo: socket.elo });
     socket.emit("matchmaking:waiting");
     console.log(`${username} joined queue (${matchmakingQueue.length})`);
+
     if (matchmakingQueue.length >= 2) {
-      const p1 = matchmakingQueue.shift(); const p2 = matchmakingQueue.shift();
+      const p1 = matchmakingQueue.shift();
+      const p2 = matchmakingQueue.shift();
       startGame(p1, p2, true);
+    } else {
+      // Schedule auto-bot if still waiting after 10 seconds
+      setTimeout(() => trySpawnAutoBot(socket), 10000);
     }
   });
 
@@ -325,7 +514,12 @@ io.on("connection", (socket) => {
       if (opponentId) game.players[opponentId].streak = 0;
       const scores = Object.fromEntries(Object.values(game.players).map((p) => [p.username, p.score]));
       io.to(gameId).emit("game:point", { scorer: player.username, scores, streak: player.streak });
-      if (player.score >= game.maxScore) { endGame(gameId, socket.id); }
+      if (player.score >= game.maxScore) {
+        if (game.isAutoBot) {
+          endAutoBotGame(gameId, socket.id);
+        } else {
+          endGame(gameId, socket.id);
+        } }
       else { setTimeout(() => nextRound(gameId), 1200); }
     } else { player.streak = 0; socket.emit("game:wrong"); }
   });
