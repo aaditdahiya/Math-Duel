@@ -1,6 +1,9 @@
-# 🎮 Math Duel
+<img width="1918" height="913" alt="mathduel-preview" src="https://github.com/user-attachments/assets/95a54828-eaa5-482a-8de3-4e1b0e69f055" /># 🎮 Math Duel
 
 A real-time multiplayer math battle game where two players race to solve math questions as quickly and accurately as possible.
+
+mathduel-preview.png
+
 
 ## ✨ Features
 
